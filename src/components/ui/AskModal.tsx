@@ -6,7 +6,10 @@ import { createClient } from "@/lib/supabase/client";
 export default function AskModal({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
+  const [mode, setMode] = useState<"community" | "user">("community");
+  const [targetUsername, setTargetUsername] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
   const MAX = 500;
 
   useEffect(() => {
@@ -26,23 +29,55 @@ export default function AskModal({ userId }: { userId: string }) {
     e.preventDefault();
     if (!question.trim()) return;
     setStatus("loading");
+    setErrorMsg("");
 
     const supabase = createClient();
-    await supabase.from("questions").insert({
-      recipient_id: null,       // community question — no specific person
+    let recipientId: string | null = null;
+
+    if (mode === "user") {
+      if (!targetUsername.trim()) {
+        setStatus("error");
+        setErrorMsg("Ingresa un nombre de usuario.");
+        return;
+      }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("username", targetUsername.trim().toLowerCase())
+        .maybeSingle();
+
+      if (!profile) {
+        setStatus("error");
+        setErrorMsg(`@${targetUsername.trim()} no existe.`);
+        return;
+      }
+      recipientId = profile.id;
+    }
+
+    const { error } = await supabase.from("questions").insert({
+      recipient_id: recipientId,
       sender_id: userId,
       content: question.trim(),
       is_anonymous: true,
     });
 
+    if (error) {
+      setStatus("error");
+      setErrorMsg("Algo salió mal. Intenta de nuevo.");
+      return;
+    }
+
     setStatus("success");
-    setTimeout(() => handleClose(), 1800);
+    setTimeout(() => handleClose(), 3000);
   }
 
   function handleClose() {
     setOpen(false);
     setQuestion("");
+    setTargetUsername("");
+    setMode("community");
     setStatus("idle");
+    setErrorMsg("");
   }
 
   if (!open) return null;
@@ -65,30 +100,68 @@ export default function AskModal({ userId }: { userId: string }) {
               ¡Pregunta enviada!
             </p>
             <p className="text-[#545881] dark:text-[#969ac6] text-sm mt-1">
-              La comunidad podrá responderla.
+              {mode === "user"
+                ? `@${targetUsername.trim()} recibirá tu pregunta.`
+                : "La comunidad podrá responderla."}
             </p>
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between mb-5">
-              <div>
-                <h2 className="text-xl font-extrabold text-[#272b51] dark:text-[#c8ccf0]"
-                  style={{ fontFamily: "var(--font-plus-jakarta)" }}>
-                  Pregunta anónima
-                </h2>
-                <p className="text-xs text-[#545881] dark:text-[#969ac6] mt-0.5">
-                  La comunidad verá tu pregunta y podrá responder
-                </p>
-              </div>
+              <h2 className="text-xl font-extrabold text-[#272b51] dark:text-[#c8ccf0]"
+                style={{ fontFamily: "var(--font-plus-jakarta)" }}>
+                Pregunta anónima
+              </h2>
               <button onClick={handleClose}
                 className="text-[#a6aad7] hover:text-[#272b51] dark:hover:text-white transition-colors">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
 
+            {/* Mode selector */}
+            <div className="flex bg-[#f1efff] dark:bg-white/10 rounded-[1rem] p-1 mb-5">
+              <button
+                type="button"
+                onClick={() => setMode("community")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[0.75rem] text-sm font-bold transition-all ${
+                  mode === "community"
+                    ? "bg-white dark:bg-[#0052d0] text-[#0052d0] dark:text-white shadow-sm"
+                    : "text-[#545881] dark:text-[#969ac6]"
+                }`}
+              >
+                <span className="material-symbols-outlined text-lg">group</span>
+                Comunidad
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("user")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[0.75rem] text-sm font-bold transition-all ${
+                  mode === "user"
+                    ? "bg-white dark:bg-[#0052d0] text-[#0052d0] dark:text-white shadow-sm"
+                    : "text-[#545881] dark:text-[#969ac6]"
+                }`}
+              >
+                <span className="material-symbols-outlined text-lg">person</span>
+                A un usuario
+              </button>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
+              {mode === "user" && (
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#a6aad7] font-bold text-sm">@</span>
+                  <input
+                    type="text"
+                    value={targetUsername}
+                    onChange={(e) => setTargetUsername(e.target.value.replace(/\s/g, ""))}
+                    placeholder="nombre_de_usuario"
+                    autoFocus
+                    className="w-full bg-[#f1efff] dark:bg-white/10 dark:text-[#c8ccf0] rounded-[1rem] py-3 pl-8 pr-4 text-[#272b51] placeholder:text-[#a6aad7] focus:outline-none focus:ring-2 focus:ring-[#0052d0]/30 transition"
+                  />
+                </div>
+              )}
+
               <div className="flex items-start gap-3">
-                {/* Anonymous avatar */}
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#a33800] to-[#ffc4af] flex items-center justify-center flex-shrink-0 mt-1">
                   <span className="material-symbols-outlined text-white text-lg"
                     style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
@@ -99,8 +172,12 @@ export default function AskModal({ userId }: { userId: string }) {
                     onChange={(e) => setQuestion(e.target.value)}
                     maxLength={MAX}
                     rows={4}
-                    autoFocus
-                    placeholder="¿Qué le preguntarías a la comunidad?"
+                    autoFocus={mode === "community"}
+                    placeholder={
+                      mode === "community"
+                        ? "¿Qué le preguntarías a la comunidad?"
+                        : "¿Qué quieres preguntarle?"
+                    }
                     className="w-full bg-[#f1efff] dark:bg-white/10 dark:text-[#c8ccf0] rounded-[1rem] py-3 px-4 text-[#272b51] placeholder:text-[#a6aad7] focus:outline-none focus:ring-2 focus:ring-[#0052d0]/30 resize-none transition"
                   />
                   <span className={`absolute bottom-3 right-4 text-xs font-medium ${
@@ -110,6 +187,13 @@ export default function AskModal({ userId }: { userId: string }) {
                   </span>
                 </div>
               </div>
+
+              {status === "error" && (
+                <p className="text-sm text-[#b31b25] flex items-center gap-2">
+                  <span className="material-symbols-outlined text-base">error</span>
+                  {errorMsg}
+                </p>
+              )}
 
               <button
                 type="submit"
@@ -124,7 +208,7 @@ export default function AskModal({ userId }: { userId: string }) {
                 ) : (
                   <>
                     <span className="material-symbols-outlined text-lg">send</span>
-                    Preguntar a la comunidad
+                    {mode === "community" ? "Preguntar a la comunidad" : "Enviar pregunta"}
                   </>
                 )}
               </button>
