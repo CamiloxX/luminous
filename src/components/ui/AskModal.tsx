@@ -54,16 +54,19 @@ export default function AskModal({ userId }: { userId: string }) {
       recipientId = profile.id;
     }
 
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+
     const { error } = await supabase.from("questions").insert({
       recipient_id: recipientId,
-      sender_id: userId,
+      sender_id: currentUser?.id ?? null,
       content: question.trim(),
       is_anonymous: true,
     });
 
     if (error) {
+      console.error("Supabase insert error:", error);
       setStatus("error");
-      setErrorMsg("Algo salió mal. Intenta de nuevo.");
+      setErrorMsg(`Error: ${error.message}`);
       return;
     }
 
