@@ -54,9 +54,9 @@ export default function HomeFeed({ questions, community, trending, userId }: Pro
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-3xl font-extrabold tracking-tight text-[#272b51] dark:text-[#c8ccf0]"
               style={{ fontFamily: "var(--font-plus-jakarta)" }}>
-              Trending
+              Trending now
             </h2>
-            <span className="bg-[#f797f0] text-[#610e63] text-xs font-bold px-3 py-1 rounded-full">LIVE</span>
+            <span className="bg-[#f797f0] text-[#610e63] text-xs font-bold px-3 py-1 rounded-full animate-pulse">🔥 LIVE</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
             <TrendingFeatured question={trending[0]} userId={userId} />
@@ -93,7 +93,7 @@ export default function HomeFeed({ questions, community, trending, userId }: Pro
         </h2>
         {questions.length > 0 ? (
           <div className="space-y-4">
-            {questions.map((q) => <QuestionCard key={q.id} question={q} />)}
+            {questions.map((q) => <QuestionCard key={q.id} question={q} userId={userId} />)}
           </div>
         ) : (
           <div className="text-center py-20 bg-[#f1efff] dark:bg-white/5 rounded-[1.5rem]">
@@ -264,46 +264,76 @@ function TrendingSmall({ question }: { question: FeedQuestion }) {
 }
 
 /* ── Latest unanswered question card ── */
-function QuestionCard({ question }: { question: FeedQuestion }) {
+function QuestionCard({ question, userId }: { question: FeedQuestion; userId: string | null }) {
+  const [liked, setLiked] = useState(false);
+  const [count, setCount] = useState(question.likes_count);
   const timeAgo = formatTimeAgo(question.created_at);
 
+  async function toggleLike(e: React.MouseEvent) {
+    e.preventDefault();
+    if (!userId) return;
+    const supabase = createClient();
+    if (liked) {
+      await supabase.from("likes").delete().match({ user_id: userId, question_id: question.id });
+      setCount((c) => c - 1);
+    } else {
+      await supabase.from("likes").insert({ user_id: userId, question_id: question.id });
+      setCount((c) => c + 1);
+    }
+    setLiked((v) => !v);
+  }
+
   return (
-    <Link
-      href={question.profiles ? `/u/${question.profiles.username}` : "#"}
-      className="block bg-white dark:bg-[#111328] rounded-[1.5rem] p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-shadow"
-    >
-      <div className="flex items-start gap-4">
-        {/* Anonymous avatar */}
-        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#a33800] to-[#ffc4af] flex items-center justify-center flex-shrink-0 mt-0.5">
-          <span className="material-symbols-outlined text-white text-sm"
-            style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
-        </div>
+    <article className="bg-white dark:bg-[#111328] rounded-[1.5rem] p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-shadow">
+      <Link href={question.profiles ? `/u/${question.profiles.username}` : "#"} className="block">
+        <div className="flex items-start gap-4">
+          {/* Anonymous avatar */}
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#a33800] to-[#ffc4af] flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span className="material-symbols-outlined text-white text-sm"
+              style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+          </div>
 
-        <div className="flex-1 min-w-0">
-          <p className="text-[#272b51] dark:text-[#c8ccf0] font-medium leading-relaxed mb-3">
-            {question.content}
-          </p>
+          <div className="flex-1 min-w-0">
+            <p className="text-[#272b51] dark:text-[#c8ccf0] font-medium leading-relaxed mb-3">
+              {question.content}
+            </p>
 
-          {question.profiles && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-[#a6aad7]">para</span>
-              <ProfileAvatar profile={question.profiles} size="sm" />
-              <div>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs font-bold text-[#272b51] dark:text-[#c8ccf0]">
-                    {question.profiles.display_name ?? question.profiles.username}
-                  </span>
-                  <UserBadges badge={question.profiles.badge ?? null} isVerified={question.profiles.is_verified ?? false} size="sm" />
+            {question.profiles && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-[#a6aad7]">para</span>
+                <ProfileAvatar profile={question.profiles} size="sm" />
+                <div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-bold text-[#272b51] dark:text-[#c8ccf0]">
+                      {question.profiles.display_name ?? question.profiles.username}
+                    </span>
+                    <UserBadges badge={question.profiles.badge ?? null} isVerified={question.profiles.is_verified ?? false} size="sm" />
+                  </div>
+                  <span className="text-xs text-[#a6aad7]">@{question.profiles.username} · {timeAgo}</span>
                 </div>
-                <span className="text-xs text-[#a6aad7]">@{question.profiles.username} · {timeAgo}</span>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        <span className="material-symbols-outlined text-[#a6aad7] flex-shrink-0 mt-1">arrow_forward</span>
+          <span className="material-symbols-outlined text-[#a6aad7] flex-shrink-0 mt-1">arrow_forward</span>
+        </div>
+      </Link>
+
+      {/* Like button */}
+      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-[#f1efff] dark:border-white/5">
+        <button
+          onClick={toggleLike}
+          className={`flex items-center gap-1.5 text-sm font-semibold transition-colors ${
+            liked ? "text-[#b31b25]" : "text-[#a6aad7] hover:text-[#b31b25]"
+          } ${!userId ? "opacity-40 cursor-default" : ""}`}
+        >
+          <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: liked ? "'FILL' 1" : "'FILL' 0" }}>
+            favorite
+          </span>
+          {count > 0 && <span>{count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count}</span>}
+        </button>
       </div>
-    </Link>
+    </article>
   );
 }
 

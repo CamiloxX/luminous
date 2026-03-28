@@ -31,7 +31,6 @@ function QuestionItem({ question, isOwner, username }: { question: Question; isO
   async function handleLike() {
     if (loadingLike) return;
     setLoadingLike(true);
-
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoadingLike(false); return; }
@@ -51,45 +50,39 @@ function QuestionItem({ question, isOwner, username }: { question: Question; isO
   const timeAgo = formatTimeAgo(question.answered_at ?? question.created_at);
 
   return (
-    <article className="bg-white rounded-[1.5rem] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.04)]">
+    <article className="bg-white dark:bg-[#111328] rounded-[1.5rem] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.04)]">
       {/* Question */}
       <div className="flex items-start gap-3 mb-5">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#a33800] to-[#ffc4af] flex items-center justify-center flex-shrink-0 mt-0.5">
-          <span
-            className="material-symbols-outlined text-white text-sm"
-            style={{ fontVariationSettings: "'FILL' 1" }}
-          >
+          <span className="material-symbols-outlined text-white text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>
             person
           </span>
         </div>
         <div className="flex-1">
-          <p className="text-xs font-bold text-[#545881] uppercase tracking-widest mb-1">
-            Anonymous asked
+          <p className="text-xs font-bold text-[#545881] dark:text-[#969ac6] uppercase tracking-widest mb-1">
+            {question.is_anonymous ? "Anónimo preguntó" : "Alguien preguntó"}
           </p>
-          <p className="text-[#272b51] font-medium leading-relaxed">{question.content}</p>
+          <p className="text-[#272b51] dark:text-[#c8ccf0] font-medium leading-relaxed">{question.content}</p>
         </div>
       </div>
 
       {/* Answer */}
       {question.answer && (
-        <div className="bg-[#f1efff] rounded-[1rem] p-4 mb-5">
-          <p className="text-[#272b51] leading-relaxed">{question.answer}</p>
+        <div className="bg-[#f1efff] dark:bg-white/5 rounded-[1rem] p-4 mb-5">
+          <p className="text-[#272b51] dark:text-[#c8ccf0] leading-relaxed">{question.answer}</p>
           <p className="text-xs text-[#a6aad7] mt-2">{timeAgo}</p>
         </div>
       )}
 
       {/* Actions */}
-      <div className="flex items-center justify-between pt-4 border-t border-[#e6e6ff]">
+      <div className="flex items-center justify-between pt-4 border-t border-[#e6e6ff] dark:border-white/5">
         <button
           onClick={handleLike}
           className={`flex items-center gap-2 transition-colors ${
-            liked ? "text-[#b31b25]" : "text-[#545881] hover:text-[#b31b25]"
+            liked ? "text-[#b31b25]" : "text-[#545881] dark:text-[#969ac6] hover:text-[#b31b25]"
           }`}
         >
-          <span
-            className="material-symbols-outlined text-xl"
-            style={{ fontVariationSettings: liked ? "'FILL' 1" : "'FILL' 0" }}
-          >
+          <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: liked ? "'FILL' 1" : "'FILL' 0" }}>
             favorite
           </span>
           <span className="text-sm font-semibold">
@@ -97,11 +90,7 @@ function QuestionItem({ question, isOwner, username }: { question: Question; isO
           </span>
         </button>
 
-        <ShareButton
-          username={username}
-          questionId={question.id}
-          questionContent={question.content}
-        />
+        <ShareButton username={username} questionId={question.id} questionContent={question.content} />
       </div>
     </article>
   );
