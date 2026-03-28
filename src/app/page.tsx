@@ -29,13 +29,13 @@ export default async function HomePage() {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Answered questions (from profiles)
+  // Latest unanswered questions directed at users
   const { data: questions } = await supabase
     .from("questions")
     .select(`id, content, answer, answered_at, likes_count, is_anonymous, created_at, recipient_id, profiles:recipient_id (username, display_name, avatar_url, is_verified, badge)`)
-    .not("answer", "is", null)
+    .is("answer", null)
     .not("recipient_id", "is", null)
-    .order("answered_at", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(20) as unknown as { data: FeedQuestion[] | null };
 
   // Unanswered community questions (no recipient) — open for anyone to answer

@@ -58,6 +58,7 @@ export default function SettingsForm({ profile, userId }: { profile: Profile; us
       .eq("id", userId);
 
     if (error) {
+      console.error("Profile update error:", error);
       setStatus("error");
       return;
     }

@@ -85,20 +85,20 @@ export default function HomeFeed({ questions, community, trending, userId }: Pro
         </section>
       )}
 
-      {/* Answered feed */}
+      {/* Latest questions feed */}
       <section>
         <h2 className="text-3xl font-extrabold tracking-tight text-[#272b51] dark:text-[#c8ccf0] mb-8"
           style={{ fontFamily: "var(--font-plus-jakarta)" }}>
-          Respuestas recientes
+          Últimas preguntas
         </h2>
         {questions.length > 0 ? (
-          <div className="space-y-6">
-            {questions.map((q) => <FeedCard key={q.id} question={q} userId={userId} />)}
+          <div className="space-y-4">
+            {questions.map((q) => <QuestionCard key={q.id} question={q} />)}
           </div>
         ) : (
           <div className="text-center py-20 bg-[#f1efff] dark:bg-white/5 rounded-[1.5rem]">
             <span className="material-symbols-outlined text-[#a6aad7] text-6xl mb-4 block">chat_bubble_outline</span>
-            <p className="text-[#272b51] dark:text-[#c8ccf0] font-bold text-lg">Todavía no hay respuestas</p>
+            <p className="text-[#272b51] dark:text-[#c8ccf0] font-bold text-lg">No hay preguntas aún</p>
             <p className="text-[#545881] dark:text-[#969ac6] text-sm mt-1">¡Sé el primero en preguntar!</p>
           </div>
         )}
@@ -263,66 +263,47 @@ function TrendingSmall({ question }: { question: FeedQuestion }) {
   );
 }
 
-/* ── Answered feed card ── */
-function FeedCard({ question, userId }: { question: FeedQuestion; userId: string | null }) {
-  const [liked, setLiked] = useState(false);
-  const [count, setCount] = useState(question.likes_count);
-  const timeAgo = formatTimeAgo(question.answered_at ?? question.created_at);
-
-  async function toggleLike() {
-    if (!userId) return;
-    const supabase = createClient();
-    if (liked) {
-      await supabase.from("likes").delete().match({ user_id: userId, question_id: question.id });
-      setCount((c) => c - 1);
-    } else {
-      await supabase.from("likes").insert({ user_id: userId, question_id: question.id });
-      setCount((c) => c + 1);
-    }
-    setLiked((v) => !v);
-  }
+/* ── Latest unanswered question card ── */
+function QuestionCard({ question }: { question: FeedQuestion }) {
+  const timeAgo = formatTimeAgo(question.created_at);
 
   return (
-    <article className="bg-white dark:bg-[#111328] rounded-[1.5rem] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)] transition-shadow">
-      {question.profiles && (
-        <Link href={`/u/${question.profiles.username}`} className="flex items-center gap-3 mb-5">
-          <ProfileAvatar profile={question.profiles} size="md" />
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-bold text-[#272b51] dark:text-[#c8ccf0]"
-                style={{ fontFamily: "var(--font-plus-jakarta)" }}>
-                {question.profiles.display_name ?? question.profiles.username}
-              </p>
-              <UserBadges
-                badge={question.profiles.badge ?? null}
-                isVerified={question.profiles.is_verified ?? false}
-                size="sm"
-              />
+    <Link
+      href={question.profiles ? `/u/${question.profiles.username}` : "#"}
+      className="block bg-white dark:bg-[#111328] rounded-[1.5rem] p-5 shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-shadow"
+    >
+      <div className="flex items-start gap-4">
+        {/* Anonymous avatar */}
+        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#a33800] to-[#ffc4af] flex items-center justify-center flex-shrink-0 mt-0.5">
+          <span className="material-symbols-outlined text-white text-sm"
+            style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <p className="text-[#272b51] dark:text-[#c8ccf0] font-medium leading-relaxed mb-3">
+            {question.content}
+          </p>
+
+          {question.profiles && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#a6aad7]">para</span>
+              <ProfileAvatar profile={question.profiles} size="sm" />
+              <div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-bold text-[#272b51] dark:text-[#c8ccf0]">
+                    {question.profiles.display_name ?? question.profiles.username}
+                  </span>
+                  <UserBadges badge={question.profiles.badge ?? null} isVerified={question.profiles.is_verified ?? false} size="sm" />
+                </div>
+                <span className="text-xs text-[#a6aad7]">@{question.profiles.username} · {timeAgo}</span>
+              </div>
             </div>
-            <p className="text-xs text-[#545881] dark:text-[#969ac6]">@{question.profiles.username} · {timeAgo}</p>
-          </div>
-        </Link>
-      )}
+          )}
+        </div>
 
-      <div className="bg-[#f1efff] dark:bg-white/5 rounded-[1rem] px-5 py-4 mb-4">
-        <p className="text-xs font-bold text-[#545881] dark:text-[#969ac6] uppercase tracking-widest mb-1">Anónimo preguntó</p>
-        <p className="text-[#272b51] dark:text-[#c8ccf0] font-medium leading-relaxed">{question.content}</p>
+        <span className="material-symbols-outlined text-[#a6aad7] flex-shrink-0 mt-1">arrow_forward</span>
       </div>
-      {question.answer && (
-        <p className="text-[#272b51] dark:text-[#c8ccf0] leading-relaxed mb-5 px-1">{question.answer}</p>
-      )}
-
-      <div className="flex items-center justify-between pt-4 border-t border-[#f1efff] dark:border-white/5">
-        <button onClick={toggleLike}
-          className={`flex items-center gap-2 transition-colors ${liked ? "text-[#b31b25]" : "text-[#545881] dark:text-[#969ac6] hover:text-[#b31b25]"}`}>
-          <span className="material-symbols-outlined" style={{ fontVariationSettings: liked ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
-          <span className="text-sm font-semibold">{count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count}</span>
-        </button>
-        {question.profiles && (
-          <ShareButton username={question.profiles.username} questionId={question.id} questionContent={question.content} />
-        )}
-      </div>
-    </article>
+    </Link>
   );
 }
 
