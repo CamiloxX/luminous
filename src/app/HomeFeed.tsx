@@ -347,17 +347,29 @@ function CommunityCard({ question, userId }: { question: FeedQuestion; userId: s
               <span className="material-symbols-outlined text-white text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
             </div>
           ) : question.sender?.avatar_url ? (
-            <img src={question.sender.avatar_url} className="w-9 h-9 rounded-full object-cover flex-shrink-0 mt-0.5" alt={senderName} />
+            <Link href={`/u/${question.sender.username}`}>
+              <img src={question.sender.avatar_url} className="w-9 h-9 rounded-full object-cover flex-shrink-0 mt-0.5 hover:opacity-80 transition-opacity" alt={senderName} />
+            </Link>
           ) : (
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0052d0] to-[#8d3a8b] flex items-center justify-center flex-shrink-0 mt-0.5">
-              <span className="material-symbols-outlined text-white text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
-            </div>
+            <Link href={question.sender ? `/u/${question.sender.username}` : "#"}>
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0052d0] to-[#8d3a8b] flex items-center justify-center flex-shrink-0 mt-0.5 hover:opacity-80 transition-opacity">
+                <span className="material-symbols-outlined text-white text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+              </div>
+            </Link>
           )}
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <p className="text-xs font-bold text-[#545881] dark:text-[#969ac6] uppercase tracking-widest">
-                {senderName}
-              </p>
+              {!question.is_anonymous && question.sender ? (
+                <Link href={`/u/${question.sender.username}`} className="hover:underline">
+                  <span className={`text-xs font-bold uppercase tracking-widest ${question.sender.is_verified ? "verified-name" : "text-[#545881] dark:text-[#969ac6]"}`}>
+                    {senderName}
+                  </span>
+                </Link>
+              ) : (
+                <p className="text-xs font-bold text-[#545881] dark:text-[#969ac6] uppercase tracking-widest">
+                  {senderName}
+                </p>
+              )}
               {!question.is_anonymous && question.sender && (
                 <UserBadges badge={question.sender.badge ?? null} isVerified={question.sender.is_verified ?? false} size="sm" />
               )}
@@ -474,7 +486,9 @@ function TrendingFeatured({ question, userId }: { question: FeedQuestion; userId
               <ProfileAvatar profile={question.profiles} size="sm" />
               <div>
                 <div className="flex items-center gap-1.5">
-                  <p className="font-bold text-white text-sm">{question.profiles.display_name ?? question.profiles.username}</p>
+                  <p className={`font-bold text-sm ${question.profiles.is_verified ? "verified-name" : "text-white"}`}>
+                    {question.profiles.display_name ?? question.profiles.username}
+                  </p>
                   <UserBadges badge={question.profiles.badge ?? null} isVerified={question.profiles.is_verified ?? false} size="sm" />
                 </div>
                 <p className="text-white/60 text-xs">@{question.profiles.username}</p>
@@ -545,7 +559,7 @@ function TrendingCard({ question, userId, rank }: { question: FeedQuestion; user
             <ProfileAvatar profile={question.profiles} size="sm" />
             <div>
               <div className="flex items-center gap-1">
-                <span className="text-xs font-bold text-[#272b51] dark:text-[#c8ccf0]">
+                <span className={`text-xs font-bold ${question.profiles.is_verified ? "verified-name" : "text-[#272b51] dark:text-[#c8ccf0]"}`}>
                   {question.profiles.display_name ?? question.profiles.username}
                 </span>
                 <UserBadges badge={question.profiles.badge ?? null} isVerified={question.profiles.is_verified ?? false} size="sm" />
@@ -605,7 +619,7 @@ function QuestionCard({ question, userId }: { question: FeedQuestion; userId: st
                 <ProfileAvatar profile={question.profiles} size="sm" />
                 <div>
                   <div className="flex items-center gap-1">
-                    <span className="text-xs font-bold text-[#272b51] dark:text-[#c8ccf0]">
+                    <span className={`text-xs font-bold ${question.profiles.is_verified ? "verified-name" : "text-[#272b51] dark:text-[#c8ccf0]"}`}>
                       {question.profiles.display_name ?? question.profiles.username}
                     </span>
                     <UserBadges badge={question.profiles.badge ?? null} isVerified={question.profiles.is_verified ?? false} size="sm" />

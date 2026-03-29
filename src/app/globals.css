@@ -140,3 +140,19 @@ body {
   border-radius: 9999px;
   padding: 1.5px;
 }
+
+/* ── Verified name gradient shimmer ── */
+@keyframes name-shimmer {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.verified-name {
+  background: linear-gradient(90deg, #0052d0, #5e8bff, #8d3a8b, #f797f0, #5e8bff, #0052d0);
+  background-size: 400% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: name-shimmer 5s linear infinite;
+}

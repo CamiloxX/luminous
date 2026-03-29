@@ -16,9 +16,12 @@ export default function SettingsForm({ profile, userId }: { profile: Profile; us
   const [isVerified, setIsVerified] = useState(profile.is_verified ?? false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile.avatar_url);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(profile.cover_url ?? null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const coverRef = useRef<HTMLInputElement>(null);
 
   function toggleBadge(id: BadgeId) {
     setSelectedBadges((prev) =>
@@ -33,12 +36,20 @@ export default function SettingsForm({ profile, userId }: { profile: Profile; us
     setAvatarPreview(URL.createObjectURL(file));
   }
 
+  function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverFile(file);
+    setCoverPreview(URL.createObjectURL(file));
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setStatus("saving");
     const supabase = createClient();
 
     let avatar_url = profile.avatar_url;
+    let cover_url = profile.cover_url ?? null;
 
     if (avatarFile) {
       const ext = avatarFile.name.split(".").pop();
@@ -49,12 +60,29 @@ export default function SettingsForm({ profile, userId }: { profile: Profile; us
 
       if (uploadError) {
         setStatus("error");
-        setErrorMsg(`Error al subir imagen: ${uploadError.message}`);
+        setErrorMsg(`Error al subir avatar: ${uploadError.message}`);
         return;
       }
 
       const { data } = supabase.storage.from("avatars").getPublicUrl(path);
       avatar_url = `${data.publicUrl}?t=${Date.now()}`;
+    }
+
+    if (coverFile) {
+      const ext = coverFile.name.split(".").pop();
+      const path = `${userId}/cover.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, coverFile, { upsert: true });
+
+      if (uploadError) {
+        setStatus("error");
+        setErrorMsg(`Error al subir portada: ${uploadError.message}`);
+        return;
+      }
+
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      cover_url = `${data.publicUrl}?t=${Date.now()}`;
     }
 
     const { error } = await supabase
@@ -65,6 +93,7 @@ export default function SettingsForm({ profile, userId }: { profile: Profile; us
         badge: selectedBadges.length > 0 ? selectedBadges.join(",") : null,
         is_verified: isVerified,
         avatar_url,
+        cover_url,
         updated_at: new Date().toISOString(),
       })
       .eq("id", userId);
@@ -131,6 +160,35 @@ export default function SettingsForm({ profile, userId }: { profile: Profile; us
             onChange={handleAvatarChange}
           />
         </div>
+      </section>
+
+      {/* Cover Photo */}
+      <section className="bg-white dark:bg-[#111328] rounded-[1.5rem] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.04)]">
+        <div className="relative w-full h-32 cursor-pointer group" onClick={() => coverRef.current?.click()}>
+          {coverPreview ? (
+            <img src={coverPreview} alt="Cover" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-[#0052d0] via-[#4527a0] to-[#8d3a8b]" />
+          )}
+          <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+            <span className="material-symbols-outlined text-white text-2xl">photo_camera</span>
+            <span className="text-white font-bold text-sm">Cambiar portada</span>
+          </div>
+        </div>
+        <div className="px-6 py-4 flex items-center justify-between">
+          <div>
+            <p className="font-extrabold text-[#272b51] dark:text-[#c8ccf0]"
+              style={{ fontFamily: "var(--font-plus-jakarta)" }}>
+              Foto de Portada
+            </p>
+            <p className="text-xs text-[#a6aad7] mt-0.5">JPG, PNG · se muestra en tu perfil</p>
+          </div>
+          <button type="button" onClick={() => coverRef.current?.click()}
+            className="text-xs text-[#0052d0] dark:text-[#5e8bff] font-bold hover:opacity-80 transition-opacity">
+            Cambiar
+          </button>
+        </div>
+        <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
       </section>
 
       {/* Info */}

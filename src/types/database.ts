@@ -16,6 +16,7 @@ export interface Database {
           display_name: string | null;
           bio: string | null;
           avatar_url: string | null;
+          cover_url: string | null;
           is_verified: boolean;
           badge: string | null;
           created_at: string;
@@ -27,6 +28,7 @@ export interface Database {
           display_name?: string | null;
           bio?: string | null;
           avatar_url?: string | null;
+          cover_url?: string | null;
           is_verified?: boolean;
           badge?: string | null;
           created_at?: string;
@@ -38,6 +40,7 @@ export interface Database {
           display_name?: string | null;
           bio?: string | null;
           avatar_url?: string | null;
+          cover_url?: string | null;
           is_verified?: boolean;
           badge?: string | null;
           updated_at?: string;
