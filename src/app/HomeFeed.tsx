@@ -299,52 +299,88 @@ function CommunityAskBox({ userId }: { userId: string | null }) {
   );
 }
 
-/* ── Community card (unanswered, anyone can reply) ── */
+/* ── Community card (anyone can reply, question stays open) ── */
 function CommunityCard({ question, userId }: { question: FeedQuestion; userId: string | null }) {
+  const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [answer, setAnswer] = useState("");
-  const [done, setDone] = useState(false);
+  const [replied, setReplied] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const timeAgo = formatTimeAgo(question.created_at);
+  const senderName = question.is_anonymous
+    ? "Anónimo"
+    : (question.sender?.display_name ?? question.sender?.username ?? "Usuario");
 
   async function handleAnswer(e: React.FormEvent) {
     e.preventDefault();
     if (!answer.trim() || !userId) return;
     setLoading(true);
     const supabase = createClient();
-    await supabase.from("questions").update({
+
+    // Insert a new answered question on the responder's profile
+    // Original community question stays open for others to also respond
+    const { error } = await supabase.from("questions").insert({
+      recipient_id: userId,
+      sender_id: question.sender_id,
+      content: question.content,
+      is_anonymous: question.is_anonymous,
       answer: answer.trim(),
       answered_at: new Date().toISOString(),
-    }).eq("id", question.id);
-    setDone(true);
+    });
+
+    if (!error) {
+      setReplied(true);
+      setExpanded(false);
+      router.refresh();
+    }
+    setLoading(false);
   }
-
-  if (done) return null;
-
-  const timeAgo = formatTimeAgo(question.created_at);
 
   return (
     <div className="bg-white dark:bg-[#111328] rounded-[1.5rem] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.04)]">
       <div className="p-5">
+        {/* Sender */}
         <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#a33800] to-[#ffc4af] flex items-center justify-center flex-shrink-0 mt-0.5">
-            <span className="material-symbols-outlined text-white text-sm"
-              style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
-          </div>
+          {question.is_anonymous ? (
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#a33800] to-[#ffc4af] flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="material-symbols-outlined text-white text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+            </div>
+          ) : question.sender?.avatar_url ? (
+            <img src={question.sender.avatar_url} className="w-9 h-9 rounded-full object-cover flex-shrink-0 mt-0.5" alt={senderName} />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0052d0] to-[#8d3a8b] flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="material-symbols-outlined text-white text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+            </div>
+          )}
           <div className="flex-1">
-            <p className="text-xs font-bold text-[#545881] dark:text-[#969ac6] uppercase tracking-widest mb-1">
-              Anónimo · {timeAgo}
-            </p>
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-xs font-bold text-[#545881] dark:text-[#969ac6] uppercase tracking-widest">
+                {senderName}
+              </p>
+              {!question.is_anonymous && question.sender && (
+                <UserBadges badge={question.sender.badge ?? null} isVerified={question.sender.is_verified ?? false} size="sm" />
+              )}
+              <span className="text-xs text-[#a6aad7]">· {timeAgo}</span>
+            </div>
             <p className="text-[#272b51] dark:text-[#c8ccf0] font-medium leading-relaxed">
               {question.content}
             </p>
           </div>
         </div>
 
-        {userId && !expanded && (
-          <button
-            onClick={() => setExpanded(true)}
-            className="mt-4 w-full flex items-center justify-center gap-2 bg-[#f1efff] dark:bg-white/10 hover:bg-[#e6e6ff] dark:hover:bg-white/20 text-[#0052d0] dark:text-[#5e8bff] font-bold py-3 rounded-[1rem] transition-colors text-sm"
-          >
+        {/* Success state */}
+        {replied && (
+          <div className="mt-4 flex items-center gap-2 bg-[#f1efff] dark:bg-white/10 rounded-[1rem] px-4 py-3">
+            <span className="material-symbols-outlined text-[#0052d0] text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+            <p className="text-sm font-semibold text-[#272b51] dark:text-[#c8ccf0]">¡Respuesta publicada en tu perfil!</p>
+          </div>
+        )}
+
+        {/* Respond button */}
+        {userId && !expanded && !replied && (
+          <button onClick={() => setExpanded(true)}
+            className="mt-4 w-full flex items-center justify-center gap-2 bg-[#f1efff] dark:bg-white/10 hover:bg-[#e6e6ff] dark:hover:bg-white/20 text-[#0052d0] dark:text-[#5e8bff] font-bold py-3 rounded-[1rem] transition-colors text-sm">
             <span className="material-symbols-outlined text-lg">reply</span>
             Responder
           </button>
@@ -359,7 +395,7 @@ function CommunityCard({ question, userId }: { question: FeedQuestion; userId: s
             maxLength={1000}
             rows={3}
             autoFocus
-            placeholder="Escribe tu respuesta..."
+            placeholder="Tu respuesta se publicará en tu perfil..."
             className="w-full bg-[#f8f5ff] dark:bg-white/10 dark:text-[#c8ccf0] rounded-[1rem] py-3 px-4 text-[#272b51] placeholder:text-[#a6aad7] focus:outline-none focus:ring-2 focus:ring-[#0052d0]/30 resize-none transition text-sm"
           />
           <div className="flex gap-2">
@@ -368,8 +404,10 @@ function CommunityCard({ question, userId }: { question: FeedQuestion; userId: s
               Cancelar
             </button>
             <button type="submit" disabled={!answer.trim() || loading}
-              className="flex-1 py-3 rounded-full bg-gradient-to-br from-[#0052d0] to-[#799dff] text-white font-bold text-sm shadow-[0_4px_12px_rgba(0,82,208,0.2)] disabled:opacity-50 active:scale-95 transition-all">
-              {loading ? "Publicando..." : "Publicar"}
+              className="flex-1 py-3 rounded-full bg-gradient-to-br from-[#0052d0] to-[#799dff] text-white font-bold text-sm shadow-[0_4px_12px_rgba(0,82,208,0.2)] disabled:opacity-50 active:scale-95 transition-all flex items-center justify-center gap-2">
+              {loading
+                ? <><span className="material-symbols-outlined animate-spin text-base">progress_activity</span>Publicando...</>
+                : <><span className="material-symbols-outlined text-base">send</span>Publicar</>}
             </button>
           </div>
         </form>

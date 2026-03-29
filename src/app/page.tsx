@@ -13,7 +13,15 @@ export type FeedQuestion = {
   is_anonymous: boolean;
   created_at: string;
   recipient_id: string | null;
+  sender_id: string | null;
   profiles: {
+    username: string;
+    display_name: string | null;
+    avatar_url: string | null;
+    is_verified: boolean;
+    badge: string | null;
+  } | null;
+  sender: {
     username: string;
     display_name: string | null;
     avatar_url: string | null;
@@ -53,11 +61,11 @@ export default async function HomePage() {
   // Unanswered community questions
   const { data: community } = await supabase
     .from("questions")
-    .select(`id, content, answer, answered_at, likes_count, is_anonymous, created_at, recipient_id`)
+    .select(`id, content, answer, answered_at, likes_count, is_anonymous, created_at, recipient_id, sender_id, sender:sender_id(username, display_name, avatar_url, is_verified, badge)`)
     .is("recipient_id", null)
     .is("answer", null)
     .order("created_at", { ascending: false })
-    .limit(10) as unknown as { data: FeedQuestion[] | null };
+    .limit(20) as unknown as { data: FeedQuestion[] | null };
 
   // Trending Ask Done: most liked answered questions
   const { data: trending } = await supabase
