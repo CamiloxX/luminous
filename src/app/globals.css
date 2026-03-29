@@ -3,6 +3,9 @@
 /* Use class-based dark mode (.dark on <html>) instead of media query */
 @variant dark (&:where(.dark, .dark *));
 
+/* Ensure dynamically-composed classes in JS objects are not purged */
+@source "../components/ui/UserBadges.tsx";
+
 @theme {
   /* Luminous Design System Colors — Light */
   --color-primary: #0052d0;

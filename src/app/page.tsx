@@ -34,6 +34,7 @@ export type TopUser = {
   reputation: number;
 };
 
+export const dynamic = "force-dynamic";
 export const metadata = { title: "Home — Luminous" };
 
 export default async function HomePage() {

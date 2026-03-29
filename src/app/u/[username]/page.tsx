@@ -1,10 +1,13 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import AskForm from "./AskForm";
 import AnsweredQuestions from "./AnsweredQuestions";
 import TopBar from "@/components/layout/TopBar";
 import BottomNav from "@/components/layout/BottomNav";
 import UserBadges from "@/components/ui/UserBadges";
+
+export const dynamic = "force-dynamic";
 
 interface Props {
   params: Promise<{ username: string }>;
@@ -105,9 +108,11 @@ export default async function ProfilePage({ params }: Props) {
               {reputationTier.label} · {reputation} pts
             </span>
             {isOwner && (
-              <span className="bg-[#799dff] text-[#001e58] text-xs font-bold px-3 py-1 rounded-full">
-                Tu perfil
-              </span>
+              <Link href="/settings"
+                className="flex items-center gap-1.5 bg-[#0052d0] text-white text-xs font-bold px-3 py-1.5 rounded-full hover:bg-[#0047b7] transition-colors">
+                <span className="material-symbols-outlined text-sm">edit</span>
+                Editar perfil
+              </Link>
             )}
           </div>
         </section>
@@ -129,7 +134,7 @@ export default async function ProfilePage({ params }: Props) {
           {questions && questions.length > 0 ? (
             <AnsweredQuestions questions={questions} isOwner={isOwner} username={profile.username} />
           ) : (
-            <div className="text-center py-16 bg-[#f1efff] rounded-[1.5rem]">
+            <div className="text-center py-16 bg-[#f1efff] dark:bg-white/5 rounded-[1.5rem]">
               <span className="material-symbols-outlined text-[#a6aad7] text-5xl mb-3 block">
                 chat_bubble_outline
               </span>
