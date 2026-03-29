@@ -48,20 +48,31 @@ export default function HomeFeed({ questions, community, trending, userId }: Pro
         </div>
       </section>
 
-      {/* Trending */}
+      {/* Trending Ask Done */}
       {trending.length > 0 && (
         <section className="mb-14">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-extrabold tracking-tight text-[#272b51] dark:text-[#c8ccf0]"
-              style={{ fontFamily: "var(--font-plus-jakarta)" }}>
-              Trending now
-            </h2>
+            <div>
+              <h2 className="text-3xl font-extrabold tracking-tight text-[#272b51] dark:text-[#c8ccf0]"
+                style={{ fontFamily: "var(--font-plus-jakarta)" }}>
+                Trending Ask Done
+              </h2>
+              <p className="text-sm text-[#545881] dark:text-[#969ac6] mt-0.5">Las preguntas más votadas</p>
+            </div>
             <span className="bg-[#f797f0] text-[#610e63] text-xs font-bold px-3 py-1 rounded-full animate-pulse">🔥 LIVE</span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-            <TrendingFeatured question={trending[0]} userId={userId} />
-            {trending.slice(1).map((q) => <TrendingSmall key={q.id} question={q} />)}
-          </div>
+
+          {/* Featured top card */}
+          <TrendingFeatured question={trending[0]} userId={userId} />
+
+          {/* Grid of remaining */}
+          {trending.length > 1 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+              {trending.slice(1).map((q, i) => (
+                <TrendingCard key={q.id} question={q} userId={userId} rank={i + 2} />
+              ))}
+            </div>
+          )}
         </section>
       )}
 
@@ -186,12 +197,13 @@ function CommunityCard({ question, userId }: { question: FeedQuestion; userId: s
   );
 }
 
-/* ── Trending featured card ── */
+/* ── Trending Ask Done — #1 featured card ── */
 function TrendingFeatured({ question, userId }: { question: FeedQuestion; userId: string | null }) {
   const [liked, setLiked] = useState(false);
   const [count, setCount] = useState(question.likes_count);
 
-  async function toggleLike() {
+  async function toggleLike(e: React.MouseEvent) {
+    e.preventDefault();
     if (!userId) return;
     const supabase = createClient();
     if (liked) {
@@ -205,61 +217,131 @@ function TrendingFeatured({ question, userId }: { question: FeedQuestion; userId
   }
 
   return (
-    <div className="md:col-span-8 bg-[#d8daff] dark:bg-[#0052d0]/20 rounded-[1.5rem] p-8 relative overflow-hidden group hover:bg-[#ced1ff] dark:hover:bg-[#0052d0]/30 transition-colors duration-500">
-      <div className="absolute top-0 right-0 p-4">
-        <span className="material-symbols-outlined text-[#0052d0]/20 text-8xl rotate-12 group-hover:rotate-0 transition-transform duration-700">format_quote</span>
-      </div>
-      <div className="relative z-10">
-        {question.profiles && (
-          <Link href={`/u/${question.profiles.username}`} className="flex items-center gap-3 mb-5 w-fit">
-            <ProfileAvatar profile={question.profiles} size="sm" />
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="font-bold text-[#272b51] dark:text-[#c8ccf0] text-sm"
-                  style={{ fontFamily: "var(--font-plus-jakarta)" }}>
-                  {question.profiles.display_name ?? question.profiles.username}
-                </p>
-                <UserBadges badge={question.profiles.badge ?? null} isVerified={question.profiles.is_verified ?? false} size="sm" />
-              </div>
-              <p className="text-xs text-[#545881] dark:text-[#969ac6]">@{question.profiles.username}</p>
-            </div>
-          </Link>
-        )}
-        <p className="text-xs text-[#545881] dark:text-[#969ac6] uppercase tracking-widest mb-3 font-semibold">Anónimo preguntó</p>
-        <h3 className="text-xl font-bold text-[#272b51] dark:text-[#c8ccf0] leading-tight mb-4"
+    <div className="relative rounded-[2rem] overflow-hidden group">
+      {/* Gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0052d0] via-[#4527a0] to-[#8d3a8b] opacity-90" />
+      {/* Animated blobs */}
+      <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-white/10 blur-3xl group-hover:scale-110 transition-transform duration-700" />
+      <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-[#f797f0]/20 blur-2xl group-hover:scale-125 transition-transform duration-700" />
+
+      <div className="relative z-10 p-8">
+        {/* #1 badge */}
+        <div className="flex items-center justify-between mb-6">
+          <span className="flex items-center gap-2 bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full">
+            <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>emoji_events</span>
+            #1 Trending
+          </span>
+          <span className="text-white/60 text-xs font-semibold flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
+            {count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count} likes
+          </span>
+        </div>
+
+        {/* Quote */}
+        <span className="material-symbols-outlined text-white/20 text-7xl absolute top-6 right-6 rotate-12 group-hover:rotate-0 transition-transform duration-700">format_quote</span>
+        <h3 className="text-2xl font-extrabold text-white leading-tight mb-4 pr-16"
           style={{ fontFamily: "var(--font-plus-jakarta)" }}>
           &ldquo;{question.content}&rdquo;
         </h3>
+
         {question.answer && (
-          <p className="text-[#272b51]/70 dark:text-[#c8ccf0]/70 text-sm leading-relaxed mb-6 line-clamp-2">{question.answer}</p>
+          <p className="text-white/70 text-sm leading-relaxed mb-6 line-clamp-2">{question.answer}</p>
         )}
-        <button onClick={toggleLike}
-          className={`flex items-center gap-2 font-bold transition-colors ${liked ? "text-[#b31b25]" : "text-[#0052d0] dark:text-[#5e8bff]"}`}>
-          <span className="material-symbols-outlined" style={{ fontVariationSettings: liked ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
-          {count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count}
-        </button>
+
+        {/* User + actions */}
+        <div className="flex items-center justify-between">
+          {question.profiles ? (
+            <Link href={`/u/${question.profiles.username}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              <ProfileAvatar profile={question.profiles} size="sm" />
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-bold text-white text-sm">{question.profiles.display_name ?? question.profiles.username}</p>
+                  <UserBadges badge={question.profiles.badge ?? null} isVerified={question.profiles.is_verified ?? false} size="sm" />
+                </div>
+                <p className="text-white/60 text-xs">@{question.profiles.username}</p>
+              </div>
+            </Link>
+          ) : <div />}
+
+          <button onClick={toggleLike}
+            className={`flex items-center gap-2 font-bold px-4 py-2 rounded-full backdrop-blur-sm transition-all active:scale-95 ${
+              liked ? "bg-[#b31b25] text-white" : "bg-white/20 text-white hover:bg-white/30"
+            }`}>
+            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: liked ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
+            {count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count}
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-function TrendingSmall({ question }: { question: FeedQuestion }) {
+/* ── Trending Ask Done — grid cards (#2–#6) ── */
+const CARD_GRADIENTS = [
+  "from-[#0052d0]/10 to-[#799dff]/20 dark:from-[#0052d0]/30 dark:to-[#799dff]/10",
+  "from-[#8d3a8b]/10 to-[#f797f0]/20 dark:from-[#8d3a8b]/30 dark:to-[#f797f0]/10",
+  "from-[#a33800]/10 to-[#ffc4af]/20 dark:from-[#a33800]/30 dark:to-[#ffc4af]/10",
+  "from-[#4527a0]/10 to-[#d8daff]/20 dark:from-[#4527a0]/30 dark:to-[#d8daff]/10",
+  "from-[#006633]/10 to-[#a8f0c6]/20 dark:from-[#006633]/30 dark:to-[#a8f0c6]/10",
+];
+
+function TrendingCard({ question, userId, rank }: { question: FeedQuestion; userId: string | null; rank: number }) {
+  const [liked, setLiked] = useState(false);
+  const [count, setCount] = useState(question.likes_count);
+  const gradient = CARD_GRADIENTS[(rank - 2) % CARD_GRADIENTS.length];
+
+  async function toggleLike(e: React.MouseEvent) {
+    e.preventDefault();
+    if (!userId) return;
+    const supabase = createClient();
+    if (liked) {
+      await supabase.from("likes").delete().match({ user_id: userId, question_id: question.id });
+      setCount((c) => c - 1);
+    } else {
+      await supabase.from("likes").insert({ user_id: userId, question_id: question.id });
+      setCount((c) => c + 1);
+    }
+    setLiked((v) => !v);
+  }
+
   return (
-    <Link href={question.profiles ? `/u/${question.profiles.username}` : "#"}
-      className="md:col-span-4 bg-[#f1efff] dark:bg-white/5 rounded-[1.5rem] p-6 flex flex-col justify-between hover:bg-[#dfe0ff] dark:hover:bg-white/10 transition-colors">
-      <div className="mb-4">
-        <div className="w-8 h-8 rounded-full bg-[#799dff] mb-4 flex items-center justify-center">
-          <span className="material-symbols-outlined text-white text-sm">bolt</span>
-        </div>
-        <p className="font-semibold text-[#272b51] dark:text-[#c8ccf0] leading-snug text-sm line-clamp-3">{question.content}</p>
+    <div className={`relative rounded-[1.5rem] bg-gradient-to-br ${gradient} border border-white/50 dark:border-white/5 p-5 group hover:scale-[1.02] transition-all duration-300 overflow-hidden`}>
+      {/* Rank badge */}
+      <span className="absolute top-4 right-4 text-xs font-black text-[#545881] dark:text-[#969ac6] opacity-40 text-2xl"
+        style={{ fontFamily: "var(--font-plus-jakarta)" }}>#{rank}</span>
+
+      <p className="text-[#272b51] dark:text-[#c8ccf0] font-semibold text-sm leading-relaxed mb-4 line-clamp-3 pr-8">
+        &ldquo;{question.content}&rdquo;
+      </p>
+
+      {question.answer && (
+        <p className="text-[#545881] dark:text-[#969ac6] text-xs leading-relaxed mb-4 line-clamp-2">
+          {question.answer}
+        </p>
+      )}
+
+      <div className="flex items-center justify-between">
+        {question.profiles ? (
+          <Link href={`/u/${question.profiles.username}`} className="flex items-center gap-2 hover:opacity-70 transition-opacity" onClick={(e) => e.stopPropagation()}>
+            <ProfileAvatar profile={question.profiles} size="sm" />
+            <div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-bold text-[#272b51] dark:text-[#c8ccf0]">
+                  {question.profiles.display_name ?? question.profiles.username}
+                </span>
+                <UserBadges badge={question.profiles.badge ?? null} isVerified={question.profiles.is_verified ?? false} size="sm" />
+              </div>
+            </div>
+          </Link>
+        ) : <div />}
+
+        <button onClick={toggleLike}
+          className={`flex items-center gap-1 text-xs font-bold transition-colors ${liked ? "text-[#b31b25]" : "text-[#545881] dark:text-[#969ac6] hover:text-[#b31b25]"}`}>
+          <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: liked ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
+          {count}
+        </button>
       </div>
-      <div className="flex justify-between items-center">
-        <span className="text-xs text-[#545881] dark:text-[#969ac6] flex items-center gap-1">
-          <span className="material-symbols-outlined text-sm">favorite</span>{question.likes_count}
-        </span>
-        <span className="text-[#0052d0] dark:text-[#5e8bff] material-symbols-outlined">arrow_forward</span>
-      </div>
-    </Link>
+    </div>
   );
 }
 

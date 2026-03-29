@@ -40,6 +40,18 @@ export default async function ProfilePage({ params }: Props) {
 
   const isOwner = user?.id === profile.id;
 
+  // Reputation: total likes received + answers given
+  const totalLikes = questions?.reduce((sum, q) => sum + (q.likes_count ?? 0), 0) ?? 0;
+  const answersCount = questions?.length ?? 0;
+  const reputation = totalLikes * 5 + answersCount * 10;
+
+  const reputationTier =
+    reputation >= 1000 ? { label: "Leyenda", icon: "crown", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" } :
+    reputation >= 500  ? { label: "Influyente", icon: "diamond", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" } :
+    reputation >= 200  ? { label: "Popular", icon: "local_fire_department", color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" } :
+    reputation >= 50   ? { label: "En ascenso", icon: "trending_up", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" } :
+                         { label: "Nuevo", icon: "eco", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300" };
+
   return (
     <>
       <TopBar />
@@ -82,13 +94,19 @@ export default async function ProfilePage({ params }: Props) {
             </p>
           )}
 
-          <div className="flex items-center justify-center gap-2 mt-4">
+          <div className="flex items-center justify-center gap-2 mt-4 flex-wrap">
             <span className="bg-[#f797f0] text-[#610e63] text-xs font-bold px-3 py-1 rounded-full">
-              {questions?.length ?? 0} answers
+              {answersCount} respuestas
+            </span>
+            <span className={`flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full ${reputationTier.color}`}>
+              <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>
+                {reputationTier.icon}
+              </span>
+              {reputationTier.label} · {reputation} pts
             </span>
             {isOwner && (
               <span className="bg-[#799dff] text-[#001e58] text-xs font-bold px-3 py-1 rounded-full">
-                Your profile
+                Tu perfil
               </span>
             )}
           </div>

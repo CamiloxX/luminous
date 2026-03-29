@@ -47,15 +47,13 @@ export default async function HomePage() {
     .order("created_at", { ascending: false })
     .limit(10) as unknown as { data: FeedQuestion[] | null };
 
-  // Trending: most liked in last 7 days
-  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  // Trending Ask Done: most liked answered questions of all time
   const { data: trending } = await supabase
     .from("questions")
     .select(`id, content, answer, answered_at, likes_count, is_anonymous, created_at, recipient_id, profiles:recipient_id (username, display_name, avatar_url, is_verified, badge)`)
     .not("answer", "is", null)
-    .gte("answered_at", since)
     .order("likes_count", { ascending: false })
-    .limit(3) as unknown as { data: FeedQuestion[] | null };
+    .limit(6) as unknown as { data: FeedQuestion[] | null };
 
   return (
     <>

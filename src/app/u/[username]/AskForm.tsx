@@ -42,7 +42,7 @@ export default function AskForm({ recipientId, username }: Props) {
   return (
     <div className="bg-[#f1efff] rounded-[1.5rem] p-6">
       {/* Anonymous / Identified toggle */}
-      <div className="flex bg-white rounded-[1rem] p-1 mb-5">
+      <div className="flex bg-white dark:bg-white/10 rounded-[1rem] p-1 mb-5">
         <button
           type="button"
           onClick={() => setIsAnonymous(true)}
@@ -101,7 +101,7 @@ export default function AskForm({ recipientId, username }: Props) {
       </div>
 
       {status === "success" ? (
-        <div className="flex items-center gap-3 bg-white rounded-[1rem] px-5 py-4">
+        <div className="flex items-center gap-3 bg-white dark:bg-white/10 rounded-[1rem] px-5 py-4">
           <span className="material-symbols-outlined text-[#0052d0]"
             style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
           <p className="text-[#272b51] font-medium text-sm">
@@ -117,7 +117,7 @@ export default function AskForm({ recipientId, username }: Props) {
               maxLength={MAX}
               rows={3}
               placeholder={`Pregúntale algo a @${username}...`}
-              className="w-full bg-white rounded-[1rem] py-4 px-5 text-[#272b51] placeholder:text-[#a6aad7] focus:outline-none focus:ring-2 focus:ring-[#0052d0]/30 resize-none transition"
+              className="w-full bg-white dark:bg-white/10 dark:text-[#c8ccf0] rounded-[1rem] py-4 px-5 text-[#272b51] placeholder:text-[#a6aad7] focus:outline-none focus:ring-2 focus:ring-[#0052d0]/30 resize-none transition"
             />
             <span
               className={`absolute bottom-3 right-4 text-xs font-medium ${
