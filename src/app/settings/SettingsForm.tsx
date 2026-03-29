@@ -16,6 +16,7 @@ export default function SettingsForm({ profile, userId }: { profile: Profile; us
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile.avatar_url);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -40,10 +41,15 @@ export default function SettingsForm({ profile, userId }: { profile: Profile; us
         .from("avatars")
         .upload(path, avatarFile, { upsert: true });
 
-      if (!uploadError) {
-        const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-        avatar_url = `${data.publicUrl}?t=${Date.now()}`;
+      if (uploadError) {
+        console.error("Avatar upload error:", uploadError);
+        setStatus("error");
+        setErrorMsg(`Error al subir imagen: ${uploadError.message}`);
+        return;
       }
+
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      avatar_url = `${data.publicUrl}?t=${Date.now()}`;
     }
 
     const { error } = await supabase
@@ -60,6 +66,7 @@ export default function SettingsForm({ profile, userId }: { profile: Profile; us
     if (error) {
       console.error("Profile update error:", error);
       setStatus("error");
+      setErrorMsg(`Error: ${error.message}`);
       return;
     }
 
@@ -229,8 +236,9 @@ export default function SettingsForm({ profile, userId }: { profile: Profile; us
       </button>
 
       {status === "error" && (
-        <p className="text-center text-sm text-[#b31b25]">
-          Something went wrong. Try again.
+        <p className="text-center text-sm text-[#b31b25] flex items-center justify-center gap-2">
+          <span className="material-symbols-outlined text-base">error</span>
+          {errorMsg || "Something went wrong. Try again."}
         </p>
       )}
     </form>
