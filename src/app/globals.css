@@ -107,3 +107,36 @@ body {
 .font-headline {
   font-family: "Plus Jakarta Sans", sans-serif;
 }
+
+/* ── Verified badge animations ── */
+@keyframes verified-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(0, 82, 208, 0.5), 0 0 8px 3px rgba(93, 139, 255, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(141, 58, 139, 0.5), 0 0 12px 5px rgba(247, 151, 240, 0.4);
+  }
+}
+
+@keyframes verified-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes verified-shimmer {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.verified-badge {
+  animation: verified-glow 2.5s ease-in-out infinite;
+}
+
+.verified-ring {
+  background: linear-gradient(135deg, #0052d0, #5e8bff, #8d3a8b, #f797f0, #0052d0);
+  background-size: 300% 300%;
+  animation: verified-shimmer 3s linear infinite;
+  border-radius: 9999px;
+  padding: 1.5px;
+}

@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { BADGES, type BadgeId } from "@/components/ui/UserBadges";
+import { BADGES, parseBadges, type BadgeId } from "@/components/ui/UserBadges";
 import type { Database } from "@/types/database";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -12,12 +12,19 @@ export default function SettingsForm({ profile, userId }: { profile: Profile; us
   const router = useRouter();
   const [displayName, setDisplayName] = useState(profile.display_name ?? "");
   const [bio, setBio] = useState(profile.bio ?? "");
-  const [selectedBadge, setSelectedBadge] = useState<BadgeId | null>((profile.badge as BadgeId) ?? null);
+  const [selectedBadges, setSelectedBadges] = useState<BadgeId[]>(parseBadges(profile.badge));
+  const [isVerified, setIsVerified] = useState(profile.is_verified ?? false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(profile.avatar_url);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  function toggleBadge(id: BadgeId) {
+    setSelectedBadges((prev) =>
+      prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]
+    );
+  }
 
   function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -33,7 +40,6 @@ export default function SettingsForm({ profile, userId }: { profile: Profile; us
 
     let avatar_url = profile.avatar_url;
 
-    // Upload avatar if changed
     if (avatarFile) {
       const ext = avatarFile.name.split(".").pop();
       const path = `${userId}/avatar.${ext}`;
@@ -42,7 +48,6 @@ export default function SettingsForm({ profile, userId }: { profile: Profile; us
         .upload(path, avatarFile, { upsert: true });
 
       if (uploadError) {
-        console.error("Avatar upload error:", uploadError);
         setStatus("error");
         setErrorMsg(`Error al subir imagen: ${uploadError.message}`);
         return;
@@ -57,14 +62,14 @@ export default function SettingsForm({ profile, userId }: { profile: Profile; us
       .update({
         display_name: displayName.trim() || null,
         bio: bio.trim() || null,
-        badge: selectedBadge,
+        badge: selectedBadges.length > 0 ? selectedBadges.join(",") : null,
+        is_verified: isVerified,
         avatar_url,
         updated_at: new Date().toISOString(),
       })
       .eq("id", userId);
 
     if (error) {
-      console.error("Profile update error:", error);
       setStatus("error");
       setErrorMsg(`Error: ${error.message}`);
       return;
@@ -168,36 +173,89 @@ export default function SettingsForm({ profile, userId }: { profile: Profile; us
         </div>
       </section>
 
-      {/* Badge selector */}
+      {/* Verified toggle */}
       <section className="bg-white dark:bg-[#111328] rounded-[1.5rem] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.04)]">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="font-extrabold text-[#272b51] dark:text-[#c8ccf0]"
-            style={{ fontFamily: "var(--font-plus-jakarta)" }}>
-            Role Badge
-          </h2>
-          {selectedBadge && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Animated verified preview */}
+            <span className={`verified-badge inline-flex items-center justify-center w-8 h-8 rounded-full relative ${isVerified ? "" : "opacity-30"}`}>
+              <span className="verified-ring absolute inset-0 rounded-full" />
+              <span className="relative z-10 inline-flex items-center justify-center w-[28px] h-[28px] rounded-full bg-gradient-to-br from-[#0052d0] via-[#5e8bff] to-[#8d3a8b]">
+                <span className="material-symbols-outlined text-white"
+                  style={{ fontSize: "16px", fontVariationSettings: "'FILL' 1, 'wght' 700" }}>
+                  check
+                </span>
+              </span>
+            </span>
+            <div>
+              <h2 className="font-extrabold text-[#272b51] dark:text-[#c8ccf0]"
+                style={{ fontFamily: "var(--font-plus-jakarta)" }}>
+                Cuenta Verificada
+              </h2>
+              <p className="text-xs text-[#a6aad7] mt-0.5">
+                Muestra el chulo verificado en tu perfil
+              </p>
+            </div>
+          </div>
+          {/* Toggle switch */}
+          <button
+            type="button"
+            onClick={() => setIsVerified((v) => !v)}
+            className={`relative w-12 h-6 rounded-full transition-colors duration-300 flex-shrink-0 ${
+              isVerified
+                ? "bg-gradient-to-r from-[#0052d0] to-[#8d3a8b]"
+                : "bg-[#e6e6ff] dark:bg-white/10"
+            }`}
+          >
+            <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform duration-300 ${
+              isVerified ? "translate-x-6" : "translate-x-0.5"
+            }`} />
+          </button>
+        </div>
+      </section>
+
+      {/* Badge selector — multi-select */}
+      <section className="bg-white dark:bg-[#111328] rounded-[1.5rem] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.04)]">
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h2 className="font-extrabold text-[#272b51] dark:text-[#c8ccf0]"
+              style={{ fontFamily: "var(--font-plus-jakarta)" }}>
+              Role Badges
+            </h2>
+            <p className="text-xs text-[#a6aad7] mt-0.5">Selecciona uno o varios</p>
+          </div>
+          {selectedBadges.length > 0 && (
             <button
               type="button"
-              onClick={() => setSelectedBadge(null)}
+              onClick={() => setSelectedBadges([])}
               className="text-xs text-[#545881] dark:text-[#969ac6] hover:text-[#b31b25] transition-colors flex items-center gap-1"
             >
               <span className="material-symbols-outlined text-sm">close</span>
-              Remove
+              Quitar todos
             </button>
           )}
         </div>
 
+        {/* Selected count pill */}
+        {selectedBadges.length > 0 && (
+          <div className="mb-4 flex items-center gap-2">
+            <span className="text-xs font-bold bg-[#0052d0] text-white px-2.5 py-1 rounded-full">
+              {selectedBadges.length} seleccionado{selectedBadges.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {badgeEntries.map(([id, b]) => {
-            const isActive = selectedBadge === id;
+            const isActive = selectedBadges.includes(id);
             return (
               <button
                 key={id}
                 type="button"
-                onClick={() => setSelectedBadge(isActive ? null : id)}
+                onClick={() => toggleBadge(id)}
                 className={`flex items-center gap-2 px-3 py-3 rounded-[1rem] ring-2 transition-all text-left ${
                   isActive
-                    ? `${b.bg} ${b.text} ${b.border} ring-2 scale-[1.02] shadow-md`
+                    ? `${b.bg} ${b.text} ${b.border} ${b.darkBg} ${b.darkText} ring-2 scale-[1.02] shadow-md`
                     : "bg-[#f8f5ff] dark:bg-white/5 text-[#545881] dark:text-[#969ac6] ring-transparent hover:ring-[#a6aad7]/50"
                 }`}
               >
@@ -207,7 +265,7 @@ export default function SettingsForm({ profile, userId }: { profile: Profile; us
                 >
                   {b.icon}
                 </span>
-                <span className="text-xs font-semibold leading-tight">{b.label}</span>
+                <span className="text-xs font-semibold leading-tight flex-1">{b.label}</span>
                 {isActive && (
                   <span className="material-symbols-outlined text-sm ml-auto"
                     style={{ fontVariationSettings: "'FILL' 1" }}>

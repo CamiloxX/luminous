@@ -153,6 +153,12 @@ export const BADGES: Record<BadgeId, BadgeDef> = {
   },
 };
 
+/** Parse comma-separated badge string into array of valid BadgeIds */
+export function parseBadges(badge: string | null): BadgeId[] {
+  if (!badge) return [];
+  return badge.split(",").filter((b): b is BadgeId => b in BADGES);
+}
+
 interface Props {
   badge: string | null;
   isVerified: boolean;
@@ -164,31 +170,39 @@ export default function UserBadges({ badge, isVerified, size = "md" }: Props) {
   const textSize = size === "sm" ? "text-[10px]" : "text-xs";
   const px = size === "sm" ? "px-1.5 py-0.5" : "px-2 py-1";
 
+  const badges = parseBadges(badge);
+
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
-      {/* Verified checkmark */}
+      {/* Verified badge — animated gradient glow */}
       {isVerified && (
         <span
-          title="Verified"
-          className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#0052d0] dark:bg-[#5e8bff] flex-shrink-0"
+          title="Cuenta verificada"
+          className="verified-badge inline-flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0 relative"
         >
-          <span
-            className="material-symbols-outlined text-white"
-            style={{
-              fontSize: "13px",
-              fontVariationSettings: "'FILL' 1, 'wght' 700",
-            }}
-          >
-            check
+          {/* Animated gradient ring */}
+          <span className="verified-ring absolute inset-0 rounded-full" />
+          {/* Inner circle */}
+          <span className="relative z-10 inline-flex items-center justify-center w-[18px] h-[18px] rounded-full bg-gradient-to-br from-[#0052d0] via-[#5e8bff] to-[#8d3a8b]">
+            <span
+              className="material-symbols-outlined text-white"
+              style={{
+                fontSize: "11px",
+                fontVariationSettings: "'FILL' 1, 'wght' 700",
+              }}
+            >
+              check
+            </span>
           </span>
         </span>
       )}
 
-      {/* Role badge */}
-      {badge && BADGES[badge as BadgeId] && (() => {
-        const b = BADGES[badge as BadgeId];
+      {/* Role badges (multiple) */}
+      {badges.map((id) => {
+        const b = BADGES[id];
         return (
           <span
+            key={id}
             title={b.label}
             className={`inline-flex items-center gap-1 ${px} rounded-full ring-1 ${b.bg} ${b.text} ${b.border} ${b.darkBg} ${b.darkText} font-semibold leading-none`}
           >
@@ -201,7 +215,7 @@ export default function UserBadges({ badge, isVerified, size = "md" }: Props) {
             <span className={textSize}>{b.label}</span>
           </span>
         );
-      })()}
+      })}
     </div>
   );
 }
