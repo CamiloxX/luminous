@@ -31,33 +31,7 @@ export default function HomeFeed({ questions, community, trending, topUsers, use
     <>
       {/* Ask Prompt */}
       <section className="mb-12">
-        <div className="bg-[#f1efff] dark:bg-white/5 rounded-[1.5rem] p-8 flex flex-col md:flex-row items-center gap-6">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#0052d0] to-[#8d3a8b] flex items-center justify-center p-0.5 shadow-lg">
-            <div className="w-full h-full rounded-full bg-white dark:bg-[#07091e] flex items-center justify-center">
-              <span className="material-symbols-outlined text-[#0052d0] text-3xl">psychology</span>
-            </div>
-          </div>
-          <div className="flex-1 text-center md:text-left">
-            <h1 className="text-2xl font-extrabold text-[#272b51] dark:text-[#c8ccf0] tracking-tight mb-1"
-              style={{ fontFamily: "var(--font-plus-jakarta)" }}>
-              ¿Qué tienes en mente?
-            </h1>
-            <p className="text-[#545881] dark:text-[#969ac6] text-sm">
-              Lanza una pregunta anónima a toda la comunidad.
-            </p>
-          </div>
-          {userId ? (
-            <button id="open-ask-modal"
-              className="bg-gradient-to-br from-[#0052d0] to-[#799dff] text-white font-bold py-4 px-8 rounded-full shadow-[0_12px_32px_rgba(0,82,208,0.2)] active:scale-95 transition-all whitespace-nowrap">
-              Preguntar
-            </button>
-          ) : (
-            <Link href="/register"
-              className="bg-gradient-to-br from-[#0052d0] to-[#799dff] text-white font-bold py-4 px-8 rounded-full shadow-[0_12px_32px_rgba(0,82,208,0.2)] active:scale-95 transition-all whitespace-nowrap">
-              Únete para preguntar
-            </Link>
-          )}
-        </div>
+        <CommunityAskBox userId={userId} />
       </section>
 
       {/* Trending Ask Done */}
@@ -195,6 +169,113 @@ export default function HomeFeed({ questions, community, trending, topUsers, use
         )}
       </section>
     </>
+  );
+}
+
+/* ── Community Ask Box (inline form on home) ── */
+function CommunityAskBox({ userId }: { userId: string | null }) {
+  const [text, setText] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
+  const MAX = 500;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!text.trim() || !userId) return;
+    setStatus("loading");
+    const supabase = createClient();
+    const { error } = await supabase.from("questions").insert({
+      recipient_id: null,
+      sender_id: userId,
+      content: text.trim(),
+      is_anonymous: true,
+    });
+    if (!error) {
+      setText("");
+      setStatus("done");
+      setTimeout(() => setStatus("idle"), 3000);
+    } else {
+      setStatus("idle");
+    }
+  }
+
+  if (status === "done") {
+    return (
+      <div className="bg-gradient-to-br from-[#0052d0]/10 to-[#799dff]/10 dark:from-[#0052d0]/20 dark:to-[#799dff]/10 rounded-[1.5rem] p-8 flex items-center justify-center gap-4">
+        <span className="material-symbols-outlined text-[#0052d0] text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+        <div>
+          <p className="font-extrabold text-[#272b51] dark:text-[#c8ccf0]" style={{ fontFamily: "var(--font-plus-jakarta)" }}>
+            ¡Pregunta publicada!
+          </p>
+          <p className="text-sm text-[#545881] dark:text-[#969ac6]">La comunidad podrá responderla.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-[#f1efff] dark:bg-white/5 rounded-[1.5rem] p-6">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0052d0] to-[#8d3a8b] flex items-center justify-center flex-shrink-0">
+          <span className="material-symbols-outlined text-white text-xl">psychology</span>
+        </div>
+        <div>
+          <h1 className="font-extrabold text-[#272b51] dark:text-[#c8ccf0] text-lg" style={{ fontFamily: "var(--font-plus-jakarta)" }}>
+            ¿Qué tienes en mente?
+          </h1>
+          <p className="text-xs text-[#545881] dark:text-[#969ac6]">Pregunta a la comunidad — cualquiera puede responder</p>
+        </div>
+      </div>
+
+      {userId ? (
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="relative">
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              maxLength={MAX}
+              rows={3}
+              placeholder="Lanza tu pregunta anónima..."
+              className="w-full bg-white dark:bg-white/10 dark:text-[#c8ccf0] rounded-[1rem] py-4 px-5 text-[#272b51] placeholder:text-[#a6aad7] focus:outline-none focus:ring-2 focus:ring-[#0052d0]/30 resize-none transition"
+            />
+            <span className={`absolute bottom-3 right-4 text-xs font-medium ${text.length >= MAX * 0.9 ? "text-[#b31b25]" : "text-[#a6aad7]"}`}>
+              {text.length}/{MAX}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="flex items-center gap-1.5 text-xs text-[#a6aad7]">
+              <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>visibility_off</span>
+              Anónima · todos pueden responder
+            </span>
+            <button
+              type="submit"
+              disabled={!text.trim() || status === "loading"}
+              className="flex items-center gap-2 bg-gradient-to-br from-[#0052d0] to-[#799dff] text-white font-bold py-3 px-6 rounded-full shadow-[0_8px_24px_rgba(0,82,208,0.2)] active:scale-95 transition-all disabled:opacity-50"
+            >
+              {status === "loading" ? (
+                <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+              ) : (
+                <span className="material-symbols-outlined text-lg">send</span>
+              )}
+              Publicar
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <p className="text-[#545881] dark:text-[#969ac6] text-sm flex-1">
+            Únete para lanzar preguntas a la comunidad y obtener respuestas.
+          </p>
+          <div className="flex gap-2">
+            <Link href="/login" className="font-bold text-sm text-[#0052d0] dark:text-[#5e8bff] px-4 py-2 rounded-full hover:bg-white/50 transition-colors">
+              Iniciar sesión
+            </Link>
+            <Link href="/register" className="bg-gradient-to-br from-[#0052d0] to-[#799dff] text-white font-bold text-sm py-2 px-5 rounded-full shadow-[0_4px_12px_rgba(0,82,208,0.2)] active:scale-95 transition-all">
+              Registrarse
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
