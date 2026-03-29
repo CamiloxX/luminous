@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import ShareButton from "@/components/ui/ShareButton";
 import UserBadges from "@/components/ui/UserBadges";
@@ -63,24 +64,31 @@ export default function HomeFeed({ questions, community, trending, topUsers, use
       )}
 
       {/* Community unanswered questions */}
-      {community.length > 0 && (
-        <section className="mb-14">
-          <div className="flex items-center gap-3 mb-6">
-            <h2 className="text-3xl font-extrabold tracking-tight text-[#272b51] dark:text-[#c8ccf0]"
-              style={{ fontFamily: "var(--font-plus-jakarta)" }}>
-              Sin responder
-            </h2>
-            <span className="bg-[#ede7f6] text-[#4527a0] text-xs font-bold px-3 py-1 rounded-full">
+      <section className="mb-14" id="sin-responder">
+        <div className="flex items-center gap-3 mb-6">
+          <h2 className="text-3xl font-extrabold tracking-tight text-[#272b51] dark:text-[#c8ccf0]"
+            style={{ fontFamily: "var(--font-plus-jakarta)" }}>
+            Sin responder
+          </h2>
+          {community.length > 0 && (
+            <span className="bg-[#ede7f6] dark:bg-purple-900/30 text-[#4527a0] dark:text-purple-300 text-xs font-bold px-3 py-1 rounded-full">
               {community.length} preguntas
             </span>
-          </div>
+          )}
+        </div>
+        {community.length > 0 ? (
           <div className="space-y-4">
             {community.map((q) => (
               <CommunityCard key={q.id} question={q} userId={userId} />
             ))}
           </div>
-        </section>
-      )}
+        ) : (
+          <div className="text-center py-12 bg-[#f1efff] dark:bg-white/5 rounded-[1.5rem]">
+            <span className="material-symbols-outlined text-[#a6aad7] text-5xl mb-3 block">chat_bubble_outline</span>
+            <p className="text-[#545881] dark:text-[#969ac6] font-medium">Sé el primero en preguntar arriba ↑</p>
+          </div>
+        )}
+      </section>
 
       {/* Top Reputation Leaderboard */}
       {topUsers.length > 0 && (
@@ -174,7 +182,9 @@ export default function HomeFeed({ questions, community, trending, topUsers, use
 
 /* ── Community Ask Box (inline form on home) ── */
 function CommunityAskBox({ userId }: { userId: string | null }) {
+  const router = useRouter();
   const [text, setText] = useState("");
+  const [isAnonymous, setIsAnonymous] = useState(true);
   const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
   const MAX = 500;
 
@@ -187,29 +197,17 @@ function CommunityAskBox({ userId }: { userId: string | null }) {
       recipient_id: null,
       sender_id: userId,
       content: text.trim(),
-      is_anonymous: true,
+      is_anonymous: isAnonymous,
     });
     if (!error) {
       setText("");
       setStatus("done");
-      setTimeout(() => setStatus("idle"), 3000);
+      router.refresh(); // refresca el feed para mostrar la nueva pregunta
+      setTimeout(() => setStatus("idle"), 2500);
     } else {
+      console.error(error);
       setStatus("idle");
     }
-  }
-
-  if (status === "done") {
-    return (
-      <div className="bg-gradient-to-br from-[#0052d0]/10 to-[#799dff]/10 dark:from-[#0052d0]/20 dark:to-[#799dff]/10 rounded-[1.5rem] p-8 flex items-center justify-center gap-4">
-        <span className="material-symbols-outlined text-[#0052d0] text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-        <div>
-          <p className="font-extrabold text-[#272b51] dark:text-[#c8ccf0]" style={{ fontFamily: "var(--font-plus-jakarta)" }}>
-            ¡Pregunta publicada!
-          </p>
-          <p className="text-sm text-[#545881] dark:text-[#969ac6]">La comunidad podrá responderla.</p>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -227,39 +225,61 @@ function CommunityAskBox({ userId }: { userId: string | null }) {
       </div>
 
       {userId ? (
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="relative">
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              maxLength={MAX}
-              rows={3}
-              placeholder="Lanza tu pregunta anónima..."
-              className="w-full bg-white dark:bg-white/10 dark:text-[#c8ccf0] rounded-[1rem] py-4 px-5 text-[#272b51] placeholder:text-[#a6aad7] focus:outline-none focus:ring-2 focus:ring-[#0052d0]/30 resize-none transition"
-            />
-            <span className={`absolute bottom-3 right-4 text-xs font-medium ${text.length >= MAX * 0.9 ? "text-[#b31b25]" : "text-[#a6aad7]"}`}>
-              {text.length}/{MAX}
-            </span>
+        status === "done" ? (
+          <div className="flex items-center gap-3 bg-white dark:bg-white/10 rounded-[1rem] px-5 py-4">
+            <span className="material-symbols-outlined text-[#0052d0] text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+            <div>
+              <p className="font-bold text-[#272b51] dark:text-[#c8ccf0] text-sm">¡Pregunta publicada!</p>
+              <p className="text-xs text-[#545881] dark:text-[#969ac6]">Aparece en el feed abajo 👇</p>
+            </div>
           </div>
-          <div className="flex items-center justify-between gap-3">
-            <span className="flex items-center gap-1.5 text-xs text-[#a6aad7]">
-              <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>visibility_off</span>
-              Anónima · todos pueden responder
-            </span>
-            <button
-              type="submit"
-              disabled={!text.trim() || status === "loading"}
-              className="flex items-center gap-2 bg-gradient-to-br from-[#0052d0] to-[#799dff] text-white font-bold py-3 px-6 rounded-full shadow-[0_8px_24px_rgba(0,82,208,0.2)] active:scale-95 transition-all disabled:opacity-50"
-            >
-              {status === "loading" ? (
-                <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
-              ) : (
-                <span className="material-symbols-outlined text-lg">send</span>
-              )}
-              Publicar
-            </button>
-          </div>
-        </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-3">
+            {/* Anonymous toggle */}
+            <div className="flex bg-white dark:bg-white/10 rounded-[1rem] p-1">
+              <button type="button" onClick={() => setIsAnonymous(true)}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-[0.75rem] text-sm font-bold transition-all ${isAnonymous ? "bg-[#f1efff] dark:bg-[#0052d0] text-[#0052d0] dark:text-white shadow-sm" : "text-[#545881] dark:text-[#969ac6]"}`}>
+                <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: isAnonymous ? "'FILL' 1" : "'FILL' 0" }}>visibility_off</span>
+                Anónimo
+              </button>
+              <button type="button" onClick={() => setIsAnonymous(false)}
+                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-[0.75rem] text-sm font-bold transition-all ${!isAnonymous ? "bg-[#f1efff] dark:bg-[#0052d0] text-[#0052d0] dark:text-white shadow-sm" : "text-[#545881] dark:text-[#969ac6]"}`}>
+                <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: !isAnonymous ? "'FILL' 1" : "'FILL' 0" }}>person</span>
+                Con mi perfil
+              </button>
+            </div>
+
+            <div className="relative">
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                maxLength={MAX}
+                rows={3}
+                placeholder={isAnonymous ? "Lanza tu pregunta anónima..." : "Lanza tu pregunta..."}
+                className="w-full bg-white dark:bg-white/10 dark:text-[#c8ccf0] rounded-[1rem] py-4 px-5 text-[#272b51] placeholder:text-[#a6aad7] focus:outline-none focus:ring-2 focus:ring-[#0052d0]/30 resize-none transition"
+              />
+              <span className={`absolute bottom-3 right-4 text-xs font-medium ${text.length >= MAX * 0.9 ? "text-[#b31b25]" : "text-[#a6aad7]"}`}>
+                {text.length}/{MAX}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs text-[#a6aad7]">
+                {isAnonymous ? "Nadie sabrá que eres tú" : "Tu perfil será visible"}
+              </span>
+              <button
+                type="submit"
+                disabled={!text.trim() || status === "loading"}
+                className="flex items-center gap-2 bg-gradient-to-br from-[#0052d0] to-[#799dff] text-white font-bold py-3 px-6 rounded-full shadow-[0_8px_24px_rgba(0,82,208,0.2)] active:scale-95 transition-all disabled:opacity-50"
+              >
+                {status === "loading"
+                  ? <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+                  : <span className="material-symbols-outlined text-lg">send</span>}
+                Publicar
+              </button>
+            </div>
+          </form>
+        )
       ) : (
         <div className="flex flex-col sm:flex-row items-center gap-4">
           <p className="text-[#545881] dark:text-[#969ac6] text-sm flex-1">
