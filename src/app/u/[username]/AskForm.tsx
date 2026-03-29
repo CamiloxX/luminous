@@ -40,7 +40,7 @@ export default function AskForm({ recipientId, username }: Props) {
   }
 
   return (
-    <div className="bg-[#f1efff] rounded-[1.5rem] p-6">
+    <div className="bg-[#f1efff] dark:bg-white/5 rounded-[1.5rem] p-6">
       {/* Anonymous / Identified toggle */}
       <div className="flex bg-white dark:bg-white/10 rounded-[1rem] p-1 mb-5">
         <button

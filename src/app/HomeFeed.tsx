@@ -5,16 +5,28 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import ShareButton from "@/components/ui/ShareButton";
 import UserBadges from "@/components/ui/UserBadges";
-import type { FeedQuestion } from "./page";
+import type { FeedQuestion, TopUser } from "./page";
 
 interface Props {
   questions: FeedQuestion[];
   community: FeedQuestion[];
   trending: FeedQuestion[];
+  topUsers: TopUser[];
   userId: string | null;
 }
 
-export default function HomeFeed({ questions, community, trending, userId }: Props) {
+const REP_TIERS = [
+  { min: 1000, label: "Leyenda", icon: "crown", color: "text-amber-500" },
+  { min: 500,  label: "Influyente", icon: "diamond", color: "text-purple-500" },
+  { min: 200,  label: "Popular", icon: "local_fire_department", color: "text-orange-500" },
+  { min: 50,   label: "En ascenso", icon: "trending_up", color: "text-blue-500" },
+  { min: 0,    label: "Nuevo", icon: "eco", color: "text-green-500" },
+];
+function getTier(rep: number) {
+  return REP_TIERS.find((t) => rep >= t.min) ?? REP_TIERS[REP_TIERS.length - 1];
+}
+
+export default function HomeFeed({ questions, community, trending, topUsers, userId }: Props) {
   return (
     <>
       {/* Ask Prompt */}
@@ -92,6 +104,74 @@ export default function HomeFeed({ questions, community, trending, userId }: Pro
             {community.map((q) => (
               <CommunityCard key={q.id} question={q} userId={userId} />
             ))}
+          </div>
+        </section>
+      )}
+
+      {/* Top Reputation Leaderboard */}
+      {topUsers.length > 0 && (
+        <section className="mb-14">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-3xl font-extrabold tracking-tight text-[#272b51] dark:text-[#c8ccf0]"
+                style={{ fontFamily: "var(--font-plus-jakarta)" }}>
+                Top Reputación
+              </h2>
+              <p className="text-sm text-[#545881] dark:text-[#969ac6] mt-0.5">Los más valorados por la comunidad</p>
+            </div>
+            <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-xs font-bold px-3 py-1 rounded-full">
+              👑 Leaderboard
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {topUsers.map((u, i) => {
+              const tier = getTier(u.reputation);
+              return (
+                <Link key={u.id} href={`/u/${u.username}`}
+                  className="flex items-center gap-4 bg-white dark:bg-[#111328] rounded-[1.5rem] px-5 py-4 shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] hover:scale-[1.01] transition-all group">
+                  {/* Rank */}
+                  <span className={`text-2xl font-black w-7 flex-shrink-0 ${i === 0 ? "text-amber-500" : i === 1 ? "text-[#545881]" : i === 2 ? "text-[#a33800]" : "text-[#a6aad7]"}`}
+                    style={{ fontFamily: "var(--font-plus-jakarta)" }}>
+                    {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
+                  </span>
+
+                  {/* Avatar */}
+                  {u.avatar_url ? (
+                    <img src={u.avatar_url} alt={u.username} className="w-11 h-11 rounded-full object-cover flex-shrink-0 ring-2 ring-[#f1efff] dark:ring-white/10" />
+                  ) : (
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-[#0052d0] to-[#8d3a8b] flex items-center justify-center flex-shrink-0">
+                      <span className="material-symbols-outlined text-white text-base" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+                    </div>
+                  )}
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-[#272b51] dark:text-[#c8ccf0] truncate"
+                        style={{ fontFamily: "var(--font-plus-jakarta)" }}>
+                        {u.display_name ?? u.username}
+                      </span>
+                      <UserBadges badge={u.badge} isVerified={u.is_verified} size="sm" />
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs text-[#a6aad7]">@{u.username}</span>
+                      <span className="text-xs text-[#a6aad7]">·</span>
+                      <span className="text-xs text-[#545881] dark:text-[#969ac6]">{u.answers} respuestas</span>
+                    </div>
+                  </div>
+
+                  {/* Reputation */}
+                  <div className="flex flex-col items-end flex-shrink-0">
+                    <div className={`flex items-center gap-1 ${tier.color}`}>
+                      <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>{tier.icon}</span>
+                      <span className="text-sm font-extrabold">{u.reputation}</span>
+                    </div>
+                    <span className="text-xs text-[#a6aad7]">{tier.label}</span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
       )}

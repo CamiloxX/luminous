@@ -35,7 +35,7 @@ export default function SettingsForm({ profile, userId }: { profile: Profile; us
     // Upload avatar if changed
     if (avatarFile) {
       const ext = avatarFile.name.split(".").pop();
-      const path = `avatars/${userId}.${ext}`;
+      const path = `${userId}/avatar.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(path, avatarFile, { upsert: true });

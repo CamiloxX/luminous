@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 import NotificationBell from "@/components/ui/NotificationBell";
 import ThemeToggle from "@/components/ui/ThemeToggle";
 
@@ -6,10 +7,24 @@ interface Props {
   userId?: string | null;
 }
 
-export default function TopBar({ userId }: Props) {
+export default async function TopBar({ userId }: Props) {
+  let avatarUrl: string | null = null;
+  let profileUsername: string | null = null;
+
+  if (userId) {
+    const supabase = await createClient();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("avatar_url, username")
+      .eq("id", userId)
+      .maybeSingle();
+    avatarUrl = profile?.avatar_url ?? null;
+    profileUsername = profile?.username ?? null;
+  }
+
   return (
     <>
-      <header className="fixed top-0 w-full z-50 bg-white/85 backdrop-blur-3xl shadow-[0_12px_32px_rgba(0,0,0,0.06)]">
+      <header className="fixed top-0 w-full z-50 bg-white/85 dark:bg-[#07091e]/85 backdrop-blur-3xl shadow-[0_12px_32px_rgba(0,0,0,0.06)]">
         <div className="flex justify-between items-center px-6 py-3 max-w-7xl mx-auto">
           <Link
             href="/"
@@ -22,10 +37,10 @@ export default function TopBar({ userId }: Props) {
           <nav className="hidden md:flex items-center space-x-6">
             <Link href="/" className="text-[#0052d0] font-bold tracking-tight"
               style={{ fontFamily: "var(--font-plus-jakarta)" }}>Home</Link>
-            <Link href="/discover" className="text-[#545881] font-bold tracking-tight hover:text-[#272b51] transition-colors px-2"
+            <Link href="/discover" className="text-[#545881] dark:text-[#969ac6] font-bold tracking-tight hover:text-[#272b51] dark:hover:text-[#c8ccf0] transition-colors px-2"
               style={{ fontFamily: "var(--font-plus-jakarta)" }}>Discover</Link>
             {userId && (
-              <Link href="/inbox" className="text-[#545881] font-bold tracking-tight hover:text-[#272b51] transition-colors px-2"
+              <Link href="/inbox" className="text-[#545881] dark:text-[#969ac6] font-bold tracking-tight hover:text-[#272b51] dark:hover:text-[#c8ccf0] transition-colors px-2"
                 style={{ fontFamily: "var(--font-plus-jakarta)" }}>Inbox</Link>
             )}
           </nav>
@@ -34,7 +49,7 @@ export default function TopBar({ userId }: Props) {
             <div className="relative hidden sm:block">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#70749e] text-xl">search</span>
               <input
-                className="bg-[#f1efff] rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#0052d0]/30 w-52 transition"
+                className="bg-[#f1efff] dark:bg-white/10 dark:text-[#c8ccf0] rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#0052d0]/30 w-52 transition"
                 placeholder="Search questions..."
                 type="text"
               />
@@ -46,11 +61,17 @@ export default function TopBar({ userId }: Props) {
               <>
                 <NotificationBell userId={userId} />
                 <Link
-                  href="/settings"
-                  className="p-2 text-[#545881] dark:text-[#969ac6] hover:bg-[#f1efff] dark:hover:bg-white/10 rounded-full transition-colors"
-                  title="Settings"
+                  href={profileUsername ? `/u/${profileUsername}` : "/settings"}
+                  className="flex items-center justify-center rounded-full overflow-hidden ring-2 ring-[#f1efff] dark:ring-white/20 hover:ring-[#0052d0]/40 transition-all"
+                  title="Mi perfil"
                 >
-                  <span className="material-symbols-outlined text-2xl">account_circle</span>
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="avatar" className="w-9 h-9 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0052d0] to-[#8d3a8b] flex items-center justify-center">
+                      <span className="material-symbols-outlined text-white text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+                    </div>
+                  )}
                 </Link>
               </>
             ) : (

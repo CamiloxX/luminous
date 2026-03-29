@@ -54,7 +54,7 @@ export default async function ProfilePage({ params }: Props) {
 
   return (
     <>
-      <TopBar />
+      <TopBar userId={user?.id ?? null} />
       <main className="max-w-2xl mx-auto px-4 pt-24 pb-28 md:pb-12">
         {/* Profile Header */}
         <section className="mb-10 text-center">
